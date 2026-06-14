@@ -7,6 +7,8 @@ from caldav import Calendar, Todo
 from plann.lib import (
     _add_category,
     _adjust_ical_relations,
+    _caldav_objclass,
+    _component_type,
     _procrastinate,
     _set_something,
     _split_vcal,
@@ -104,6 +106,24 @@ def test_summary():
     assert(_summary(t) == "Buy some food and drinks, clean up the place, hang up some baloons")
     t.icalendar_component.pop('DESCRIPTION')
     assert(_summary(t) == "19970901T130000Z-123404@host.com")
+
+def test_component_type():
+    from caldav import Event, Journal
+    t = Todo()
+    t.data = todo
+    assert _component_type(t) == 'VTODO'
+    assert _component_type(t.icalendar_component) == 'VTODO'
+
+    ## a description text that mentions BEGIN:VEVENT must not be misclassified
+    t.icalendar_component['DESCRIPTION'] = 'paste this BEGIN:VEVENT into the calendar'
+    assert _component_type(t) == 'VTODO'
+
+    assert _caldav_objclass(todo) is Todo
+    assert _caldav_objclass(t.data) is Todo
+    event_ical = todo.replace('VTODO', 'VEVENT').replace('DUE:19970416T045959Z\n', '')
+    assert _caldav_objclass(event_ical) is Event
+    journal_ical = todo.replace('VTODO', 'VJOURNAL').replace('DUE:19970416T045959Z\n', '')
+    assert _caldav_objclass(journal_ical) is Journal
 
 @pytest.mark.parametrize("method", [add_time_tracking_timew, add_time_tracking])
 @patch("plann.lib.subprocess.run")

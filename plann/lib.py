@@ -117,6 +117,25 @@ def _icalendar_component(obj):
         ## assume obj is an icalendar_component
         return obj
 
+def _component_type(obj):
+    """Return the iCalendar component name ('VEVENT', 'VTODO', 'VJOURNAL', ...)
+    for a caldav object or icalendar component.
+
+    Preferred over sniffing 'BEGIN:VEVENT' etc. in the raw .data, which also
+    matches the substring inside a description/summary text body.
+    """
+    return _icalendar_component(obj).name
+
+def _caldav_objclass(ical):
+    """Map a single iCalendar object (raw text) to its caldav class, parsing
+    it properly rather than substring-sniffing 'BEGIN:VTODO' etc. in the body.
+    """
+    classes = {'VTODO': caldav.Todo, 'VJOURNAL': caldav.Journal, 'VEVENT': caldav.Event}
+    for comp in icalendar.Calendar.from_ical(ical).subcomponents:
+        if comp.name in classes:
+            return classes[comp.name]
+    return caldav.Event
+
 def _add_category(obj, category):
     comp = _icalendar_component(obj)
     if 'categories' in comp:
